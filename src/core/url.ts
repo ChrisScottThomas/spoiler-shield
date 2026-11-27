@@ -1,3 +1,4 @@
+// youtube.com without www is accepted defensively; the manifest only matches www.youtube.com.
 const WATCH_HOSTS = new Set(['www.youtube.com', 'youtube.com']);
 const VIDEO_ID = /^[A-Za-z0-9_-]{11}$/;
 
