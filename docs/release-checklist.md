@@ -15,9 +15,6 @@ Run before every release, with `dist/` loaded unpacked in Chrome (`chrome://exte
 - [ ] Dark theme and light theme: Placeholder looks native and neutral
 - [ ] Playlist autoplay into the next video after a Reveal: comments Hidden again
 - [ ] A link to a specific comment (`&lc=`): highlighted comment Hidden
-- [ ] A video with comments turned off: nothing odd
-- [ ] A former live stream: Live Chat Replay works as normal
-- [ ] Home page, search, Shorts and channel pages are unaffected
 - [ ] `chrome://extensions` shows no errors for Spoiler Shield
 
 ## Store listing
