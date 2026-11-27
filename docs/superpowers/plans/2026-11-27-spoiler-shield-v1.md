@@ -1311,13 +1311,15 @@ const store: KeyValueStore = {
   set: (items) => chrome.storage.local.set(items),
 };
 let showExplainer = false;
+let explainerDismissed = false;
 
 const placeholder = createPlaceholder(document, {
   onReveal() {
     state.reveal();
-    if (showExplainer) {
+    if (!explainerDismissed) {
+      explainerDismissed = true;
       showExplainer = false;
-      void dismissExplainer(store);
+      void dismissExplainer(store).catch(() => {});
     }
     sync();
   },
@@ -1364,10 +1366,12 @@ new MutationObserver(() => {
 }).observe(root, { childList: true, subtree: true });
 
 onLocationChange();
-void shouldShowExplainer(store).then((show) => {
-  showExplainer = show;
-  sync();
-});
+void shouldShowExplainer(store)
+  .then((show) => {
+    showExplainer = show && !explainerDismissed;
+    sync();
+  })
+  .catch(() => {});
 ```
 
 - [ ] **Step 2: Typecheck and run the unit tests**
