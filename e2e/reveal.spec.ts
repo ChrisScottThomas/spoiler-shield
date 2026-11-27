@@ -62,8 +62,16 @@ test('a Reveal does not carry over to the next video, or come back on Back', asy
 test('opening a video from search results hides its comments', async ({ page }) => {
   await page.goto('https://www.youtube.com/results?search_query=nfl+highlights');
   await page.evaluate(() => ((window as unknown as { __ssSamePage: boolean }).__ssSamePage = true));
-  // A real video result, not an ad.
-  const video = page.locator('ytd-video-renderer a#thumbnail[href*="/watch?v="]').filter({ visible: true }).first();
+  // A real video result, not an ad (classic and newer result layouts).
+  const video = page
+    .locator('ytd-video-renderer a#thumbnail[href*="/watch?v="], yt-lockup-view-model a[href*="/watch?v="]')
+    .filter({ visible: true })
+    .first();
+  // Signed out, YouTube sometimes serves an empty results page; one reload brings results back.
+  if (!(await video.waitFor({ timeout: 15_000 }).then(() => true, () => false))) {
+    await page.reload();
+    await page.evaluate(() => ((window as unknown as { __ssSamePage: boolean }).__ssSamePage = true));
+  }
   await video.click();
   await page.waitForURL(/\/watch\?/);
   // Same document: YouTube's in-page navigation from search results.
