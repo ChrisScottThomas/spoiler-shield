@@ -1136,6 +1136,7 @@ export default defineConfig({
   testDir: 'e2e',
   timeout: 90_000,
   retries: 1,
+  failOnFlakyTests: true,
   workers: 1,
   reporter: 'list',
   use: { trace: 'retain-on-failure' },
@@ -1424,6 +1425,7 @@ test('Reveal shows comments, and Hide comments hides them again', async ({ page 
   await expect(modeOf(page)).toHaveAttribute('data-spoiler-shield', 'hidden');
   await expect(page.locator('ytd-comment-thread-renderer').first()).toBeHidden();
   await expect(placeholderOf(page)).toContainText('Comments hidden by Spoiler Shield');
+  await scrollThroughPage(page, 4);
 });
 
 test('a Reveal does not carry over to the next video, or come back on Back', async ({ page }) => {
@@ -1431,7 +1433,7 @@ test('a Reveal does not carry over to the next video, or come back on Back', asy
   await reveal(page);
   await page.evaluate(() => ((window as unknown as { __ssSamePage: boolean }).__ssSamePage = true));
 
-  const next = page.locator(`#secondary a[href*="/watch?v="]:not([href*="${VIDEO}"])`).first();
+  const next = page.locator(`#secondary a[href*="/watch?v="]:not([href*="${VIDEO}"])`).filter({ visible: true }).first();
   await next.click();
   await page.waitForURL((url) => !url.href.includes(VIDEO));
   // Same document: an in-page navigation, the same path autoplay takes.
