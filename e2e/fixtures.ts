@@ -57,21 +57,30 @@ const LEAK_MONITOR = `(() => {
   requestAnimationFrame(tick);
 })();`;
 
-export const test = base.extend<{ leaks: Leak[]; context: BrowserContext; noLeaks: void }>({
+export type YouTubeTheme = 'light' | 'dark';
+
+export const test = base.extend<{ youtubeTheme: YouTubeTheme; leaks: Leak[]; context: BrowserContext; noLeaks: void }>({
+  // YouTube's own theme setting; override per describe with test.use({ youtubeTheme: 'dark' }).
+  youtubeTheme: ['light', { option: true }],
   leaks: async ({}, use) => {
     await use([]);
   },
-  context: async ({ leaks }, use) => {
+  context: async ({ leaks, youtubeTheme }, use) => {
     const extension = path.resolve('dist');
     const context = await chromium.launchPersistentContext('', {
       channel: 'chromium',
       args: [`--disable-extensions-except=${extension}`, `--load-extension=${extension}`],
       viewport: { width: 1280, height: 900 },
       locale: 'en-US',
+      colorScheme: youtubeTheme,
     });
     // Skip the EU/UK cookie-consent interstitial.
+    // PREF f6=400 is YouTube's dark-theme setting.
     await context.addCookies([
       { name: 'SOCS', value: 'CAI', domain: '.youtube.com', path: '/', secure: true, sameSite: 'Lax' },
+      ...(youtubeTheme === 'dark'
+        ? [{ name: 'PREF', value: 'f6=400', domain: '.youtube.com', path: '/', secure: true, sameSite: 'Lax' as const }]
+        : []),
     ]);
     await context.exposeFunction('__ssReportLeak', (leak: Leak) => leaks.push(leak));
     await context.addInitScript(LEAK_MONITOR);

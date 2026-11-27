@@ -21,8 +21,10 @@ describe('buildHideCss', () => {
     expect(css).toContain(`html[${ATTR}="inactive"] #${PLACEHOLDER_ID} { display: none !important; }`);
   });
 
-  it("follows YouTube's light and dark theme", () => {
-    expect(css).toContain('var(--yt-spec-text-primary');
-    expect(css).toContain('var(--yt-spec-badge-chip-background');
+  it("follows YouTube's dark theme with its own colours", () => {
+    expect(css).toContain(`html[dark] #${PLACEHOLDER_ID} {`);
+    expect(css).toContain('--ss-text: #f1f1f1;');
+    // YouTube no longer exposes its --yt-spec-* variables, so the Placeholder must not depend on them.
+    expect(css).not.toContain('--yt-spec-');
   });
 });
