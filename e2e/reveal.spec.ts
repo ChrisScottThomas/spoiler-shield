@@ -27,6 +27,7 @@ test('Reveal shows comments, and Hide comments hides them again', async ({ page 
 test('a Reveal does not carry over to the next video, or come back on Back', async ({ page }) => {
   await openWatch(page);
   await reveal(page);
+  await scrollUntilCommentsShow(page);
   await page.evaluate(() => ((window as unknown as { __ssSamePage: boolean }).__ssSamePage = true));
 
   const next = page.locator(`#secondary a[href*="/watch?v="]:not([href*="${VIDEO}"])`).filter({ visible: true }).first();
@@ -36,11 +37,15 @@ test('a Reveal does not carry over to the next video, or come back on Back', asy
   expect(await page.evaluate(() => (window as unknown as { __ssSamePage?: boolean }).__ssSamePage)).toBe(true);
   await expect(modeOf(page)).toHaveAttribute('data-spoiler-shield', 'hidden');
   await scrollThroughPage(page, 4);
+  await expect(modeOf(page)).toHaveAttribute('data-spoiler-shield', 'hidden');
+  await expect(placeholderOf(page).getByRole('button', { name: 'Show comments' })).toBeVisible();
 
   await page.goBack();
   await page.waitForURL(new RegExp(VIDEO));
   await expect(modeOf(page)).toHaveAttribute('data-spoiler-shield', 'hidden');
   await scrollThroughPage(page, 4);
+  await expect(modeOf(page)).toHaveAttribute('data-spoiler-shield', 'hidden');
+  await expect(placeholderOf(page).getByRole('button', { name: 'Show comments' })).toBeVisible();
 });
 
 test('a Reveal does not survive a refresh', async ({ page }) => {
@@ -50,6 +55,8 @@ test('a Reveal does not survive a refresh', async ({ page }) => {
   await page.locator('ytd-watch-flexy').waitFor();
   await expect(modeOf(page)).toHaveAttribute('data-spoiler-shield', 'hidden');
   await scrollThroughPage(page, 4);
+  await expect(modeOf(page)).toHaveAttribute('data-spoiler-shield', 'hidden');
+  await expect(placeholderOf(page).getByRole('button', { name: 'Show comments' })).toBeVisible();
 });
 
 test('the explainer shows until the first Reveal, then never again', async ({ page }) => {
@@ -67,6 +74,8 @@ test('the explainer shows until the first Reveal, then never again', async ({ pa
 test('comments stay hidden in a narrow window (comment teaser layout)', async ({ page }) => {
   await page.setViewportSize({ width: 600, height: 900 });
   await openWatch(page);
+  await expect(page.locator('#comment-teaser').first()).toBeAttached();
+  await expect(page.locator('#comment-teaser').first()).toBeHidden();
   await scrollThroughPage(page);
   // noLeaks catches any visible teaser or comment.
 });
