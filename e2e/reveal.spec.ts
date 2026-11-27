@@ -1,4 +1,5 @@
 import type { Page } from '@playwright/test';
+import { TEXT } from '../src/content/placeholder';
 import { expect, test } from './fixtures';
 import { openWatch, scrollThroughPage, scrollUntilCommentsShow, VIDEO } from './youtube';
 
@@ -8,7 +9,11 @@ const modeOf = (page: Page) => page.locator('html');
 async function reveal(page: Page): Promise<void> {
   const placeholder = placeholderOf(page);
   await placeholder.scrollIntoViewIfNeeded();
-  await placeholder.getByRole('button', { name: 'Show comments' }).click();
+  // The leak monitor exempts 'revealed' only on this video.
+  await page.evaluate(() => {
+    (window as unknown as { __ssRevealedFor: string | null }).__ssRevealedFor = new URLSearchParams(location.search).get('v');
+  });
+  await placeholder.getByRole('button', { name: TEXT.show }).click();
   await expect(modeOf(page)).toHaveAttribute('data-spoiler-shield', 'revealed');
 }
 
@@ -17,10 +22,10 @@ test('Reveal shows comments, and Hide comments hides them again', async ({ page 
   await reveal(page);
   await scrollUntilCommentsShow(page);
 
-  await placeholderOf(page).getByRole('button', { name: 'Hide comments' }).click();
+  await placeholderOf(page).getByRole('button', { name: TEXT.hide }).click();
   await expect(modeOf(page)).toHaveAttribute('data-spoiler-shield', 'hidden');
   await expect(page.locator('ytd-comment-thread-renderer').first()).toBeHidden();
-  await expect(placeholderOf(page)).toContainText('Comments hidden by Spoiler Shield');
+  await expect(placeholderOf(page)).toContainText(TEXT.hidden);
   await scrollThroughPage(page, 4);
 });
 
@@ -38,14 +43,30 @@ test('a Reveal does not carry over to the next video, or come back on Back', asy
   await expect(modeOf(page)).toHaveAttribute('data-spoiler-shield', 'hidden');
   await scrollThroughPage(page, 4);
   await expect(modeOf(page)).toHaveAttribute('data-spoiler-shield', 'hidden');
-  await expect(placeholderOf(page).getByRole('button', { name: 'Show comments' })).toBeVisible();
+  await expect(placeholderOf(page).getByRole('button', { name: TEXT.show })).toBeVisible();
 
   await page.goBack();
   await page.waitForURL(new RegExp(VIDEO));
   await expect(modeOf(page)).toHaveAttribute('data-spoiler-shield', 'hidden');
   await scrollThroughPage(page, 4);
   await expect(modeOf(page)).toHaveAttribute('data-spoiler-shield', 'hidden');
-  await expect(placeholderOf(page).getByRole('button', { name: 'Show comments' })).toBeVisible();
+  await expect(placeholderOf(page).getByRole('button', { name: TEXT.show })).toBeVisible();
+});
+
+// Signed out, the home page often lists no videos ("try searching"), so this
+// starts from search results: the same in-page navigation into a Watch Page.
+test('opening a video from search results hides its comments', async ({ page }) => {
+  await page.goto('https://www.youtube.com/results?search_query=nfl+highlights');
+  await page.evaluate(() => ((window as unknown as { __ssSamePage: boolean }).__ssSamePage = true));
+  const video = page.locator('a[href*="/watch?v="]').filter({ visible: true }).first();
+  await video.click();
+  await page.waitForURL(/\/watch\?/);
+  // Same document: YouTube's in-page navigation from search results.
+  expect(await page.evaluate(() => (window as unknown as { __ssSamePage?: boolean }).__ssSamePage)).toBe(true);
+  await expect(modeOf(page)).toHaveAttribute('data-spoiler-shield', 'hidden');
+  await expect(placeholderOf(page).getByRole('button', { name: TEXT.show })).toBeVisible();
+  await scrollThroughPage(page, 4);
+  await expect(modeOf(page)).toHaveAttribute('data-spoiler-shield', 'hidden');
 });
 
 test('a Reveal does not survive a refresh', async ({ page }) => {
@@ -56,19 +77,18 @@ test('a Reveal does not survive a refresh', async ({ page }) => {
   await expect(modeOf(page)).toHaveAttribute('data-spoiler-shield', 'hidden');
   await scrollThroughPage(page, 4);
   await expect(modeOf(page)).toHaveAttribute('data-spoiler-shield', 'hidden');
-  await expect(placeholderOf(page).getByRole('button', { name: 'Show comments' })).toBeVisible();
+  await expect(placeholderOf(page).getByRole('button', { name: TEXT.show })).toBeVisible();
 });
 
 test('the explainer shows until the first Reveal, then never again', async ({ page }) => {
   await openWatch(page);
-  const explainer = 'Comments are hidden on every video so nothing spoils the result.';
-  await expect(placeholderOf(page)).toContainText(explainer);
+  await expect(placeholderOf(page)).toContainText(TEXT.explainer);
   await reveal(page);
-  await placeholderOf(page).getByRole('button', { name: 'Hide comments' }).click();
-  await expect(placeholderOf(page)).not.toContainText(explainer);
+  await placeholderOf(page).getByRole('button', { name: TEXT.hide }).click();
+  await expect(placeholderOf(page)).not.toContainText(TEXT.explainer);
   await page.reload();
-  await expect(placeholderOf(page)).toContainText('Comments hidden by Spoiler Shield');
-  await expect(placeholderOf(page)).not.toContainText(explainer);
+  await expect(placeholderOf(page)).toContainText(TEXT.hidden);
+  await expect(placeholderOf(page)).not.toContainText(TEXT.explainer);
 });
 
 test('comments stay hidden in a narrow window (comment teaser layout)', async ({ page }) => {

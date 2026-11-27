@@ -1,5 +1,6 @@
 import path from 'node:path';
 import { test as base, chromium, expect, type BrowserContext } from '@playwright/test';
+import { ATTR, PLACEHOLDER_ID } from '../src/core/constants';
 
 export interface Leak {
   tag: string;
@@ -9,15 +10,26 @@ export interface Leak {
 }
 
 // Runs in the page before YouTube's scripts. Reports any visible element that
-// shows comment text while comments should be Hidden.
+// shows comment text while comments should be Hidden. It does not trust the
+// extension's own mode: 'revealed' is exempt only on the video the test revealed
+// (window.__ssRevealedFor, set by the test before clicking), and 'inactive' only
+// off the Watch Page. Leaving that video forgets it, so a Reveal that comes back
+// on Back is a leak too.
 const LEAK_MONITOR = `(() => {
   const reported = new WeakSet();
+  const exempt = (mode) => {
+    const video = new URLSearchParams(location.search).get('v');
+    if (window.__ssRevealedFor && video !== window.__ssRevealedFor) window.__ssRevealedFor = null;
+    if (mode === 'revealed') return video !== null && video === window.__ssRevealedFor;
+    if (mode === 'inactive') return location.pathname !== '/watch';
+    return false;
+  };
   const tick = () => {
-    const mode = document.documentElement.getAttribute('data-spoiler-shield');
-    if (mode !== 'revealed' && mode !== 'inactive') {
+    const mode = document.documentElement.getAttribute(${JSON.stringify(ATTR)});
+    if (!exempt(mode)) {
       for (const el of document.querySelectorAll('*')) {
         if (!el.tagName.includes('COMMENT') && el.id !== 'comment-teaser') continue;
-        if (reported.has(el) || el.closest('#spoiler-shield-placeholder')) continue;
+        if (reported.has(el) || el.closest(${JSON.stringify('#' + PLACEHOLDER_ID)})) continue;
         const text = (el.textContent || '').trim();
         if (text && el.checkVisibility() && el.getBoundingClientRect().height > 0) {
           reported.add(el);

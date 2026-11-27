@@ -1,3 +1,4 @@
+import { TEXT } from '../src/content/placeholder';
 import { expect, test } from './fixtures';
 import { openWatch, scrollThroughPage } from './youtube';
 
@@ -13,8 +14,8 @@ test.describe('Hidden by default', () => {
     const placeholder = page.locator('#spoiler-shield-placeholder');
     await placeholder.scrollIntoViewIfNeeded();
     await expect(placeholder).toBeVisible();
-    await expect(placeholder).toContainText('Comments hidden by Spoiler Shield');
-    await expect(placeholder.getByRole('button', { name: 'Show comments' })).toBeVisible();
+    await expect(placeholder).toContainText(TEXT.hidden);
+    await expect(placeholder.getByRole('button', { name: TEXT.show })).toBeVisible();
     await expect(page.locator('html')).toHaveAttribute('data-spoiler-shield', 'hidden');
   });
 });
