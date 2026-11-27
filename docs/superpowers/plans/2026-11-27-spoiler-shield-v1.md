@@ -64,7 +64,7 @@ Expected: `Switched to a new branch 'v1'`
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "engines": { "node": ">=20" },
+  "engines": { "node": ">=22.22.2" },
   "scripts": {
     "build": "tsx scripts/build.ts",
     "icons": "tsx scripts/icons.ts",
