@@ -25,7 +25,7 @@ Run before every release, with `dist/` loaded unpacked in Chrome (`chrome://exte
 - [ ] `storage` permission justification: "remembers that the one-time explanation was seen"
 - [ ] Host access justification: "runs only on www.youtube.com to hide comments"
 - [ ] Data usage certification: "collects no user data"
-- [ ] Privacy policy URL: `docs/privacy.md` needs a public URL before submission. The GitHub repo is currently private, so make it public or host the page elsewhere.
+- [ ] Privacy policy URL: https://github.com/ChrisScottThomas/spoiler-shield/blob/main/docs/privacy.md
 
 ## Package
 - [ ] Bump version in `manifest.json` (and `package.json`)

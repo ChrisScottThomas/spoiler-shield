@@ -20,3 +20,7 @@ npm run package     # build and zip dist/ into spoiler-shield.zip
 ```
 
 Releasing: [docs/release-checklist.md](./docs/release-checklist.md) · Privacy: [docs/privacy.md](./docs/privacy.md)
+
+## License
+
+[MIT](./LICENSE). The agent skills in `.agents/skills/` come from [mattpocock/skills](https://github.com/mattpocock/skills) and are under that project's MIT license ([.agents/skills/LICENSE](./.agents/skills/LICENSE)).
