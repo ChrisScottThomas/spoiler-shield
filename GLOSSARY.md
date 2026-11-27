@@ -30,6 +30,7 @@ _Avoid_: Banner, overlay, cover
 
 **Reveal**:
 The viewer's deliberate, one-click choice to show **Comments** for the video they are watching. It belongs to that one loaded video: going to another video (including autoplay), pressing Back, refreshing or opening the video in another tab all leave **Comments** **Hidden** again. It can be undone by hiding them again.
+The on-screen button label "Show comments" is user-facing copy, not domain language.
 _Avoid_: Unhide, unblock, show
 
 **Safe List**:
