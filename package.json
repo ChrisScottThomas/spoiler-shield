@@ -1,0 +1,30 @@
+{
+  "name": "spoiler-shield",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=22.22.2"
+  },
+  "scripts": {
+    "build": "tsx scripts/build.ts",
+    "icons": "tsx scripts/icons.ts",
+    "recon": "tsx scripts/recon.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:e2e": "npm run build && playwright test",
+    "package": "npm run build && rm -f spoiler-shield.zip && cd dist && zip -r ../spoiler-shield.zip ."
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.65.1",
+    "@types/chrome": "^0.3.8",
+    "@types/node": "^26.6.11",
+    "esbuild": "^0.28.2",
+    "jsdom": "^31.0.1",
+    "sharp": "^0.35.5",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vitest": "^5.1.2"
+  }
+}

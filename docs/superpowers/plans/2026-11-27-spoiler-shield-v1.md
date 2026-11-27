@@ -64,7 +64,7 @@ Expected: `Switched to a new branch 'v1'`
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "engines": { "node": ">=20" },
+  "engines": { "node": ">=22.22.2" },
   "scripts": {
     "build": "tsx scripts/build.ts",
     "icons": "tsx scripts/icons.ts",
@@ -320,6 +320,29 @@ describe('createRevealState', () => {
     s.navigatedTo(A);
     expect(s.currentVideoId()).toBe(A);
   });
+
+  it('ignores a Reveal while a navigation is in progress', () => {
+    const s = createRevealState();
+    s.navigatedTo(A);
+    s.navigationStarted();
+    s.reveal();
+    expect(s.mode()).toBe('hidden');
+    s.navigatedTo(B);
+    expect(s.mode()).toBe('hidden');
+  });
+
+  it('keeps a Reveal across a same-video navigation that starts and finishes', () => {
+    const s = createRevealState();
+    s.navigatedTo(A);
+    s.reveal();
+    s.navigationStarted();
+    s.navigatedTo(A);
+    expect(s.mode()).toBe('revealed');
+  });
+
+  it('has no current video before any page is known', () => {
+    expect(createRevealState().currentVideoId()).toBeNull();
+  });
 });
 ```
 
@@ -360,9 +383,9 @@ export function createRevealState(): RevealState {
       navigating = false;
     },
     reveal() {
-      if (current === null) return;
+      // Ignored mid-navigation: we don't yet know which video the Reveal would apply to (fail closed).
+      if (navigating || current === null) return;
       revealed = current;
-      navigating = false;
     },
     hide() {
       revealed = null;
@@ -382,7 +405,7 @@ export function createRevealState(): RevealState {
 - [ ] **Step 4: Run the test and check it passes**
 
 Run: `npx vitest run src/core/state.test.ts`
-Expected: PASS, 12 tests.
+Expected: PASS, 15 tests.
 
 - [ ] **Step 5: Commit**
 
@@ -1084,7 +1107,7 @@ Expected: `built dist/`. `dist/` contains `content.js hide.css icons manifest.js
 - [ ] **Step 7: Typecheck and run the unit tests**
 
 Run: `npm run typecheck && npm test`
-Expected: typecheck prints nothing, and Vitest reports 7 files passed, 45 tests.
+Expected: typecheck prints nothing, and Vitest reports 7 files passed, 48 tests.
 
 - [ ] **Step 8: Commit**
 
@@ -1113,6 +1136,7 @@ export default defineConfig({
   testDir: 'e2e',
   timeout: 90_000,
   retries: 1,
+  failOnFlakyTests: true,
   workers: 1,
   reporter: 'list',
   use: { trace: 'retain-on-failure' },
@@ -1288,13 +1312,15 @@ const store: KeyValueStore = {
   set: (items) => chrome.storage.local.set(items),
 };
 let showExplainer = false;
+let explainerDismissed = false;
 
 const placeholder = createPlaceholder(document, {
   onReveal() {
     state.reveal();
-    if (showExplainer) {
+    if (!explainerDismissed) {
+      explainerDismissed = true;
       showExplainer = false;
-      void dismissExplainer(store);
+      void dismissExplainer(store).catch(() => {});
     }
     sync();
   },
@@ -1341,16 +1367,18 @@ new MutationObserver(() => {
 }).observe(root, { childList: true, subtree: true });
 
 onLocationChange();
-void shouldShowExplainer(store).then((show) => {
-  showExplainer = show;
-  sync();
-});
+void shouldShowExplainer(store)
+  .then((show) => {
+    showExplainer = show && !explainerDismissed;
+    sync();
+  })
+  .catch(() => {});
 ```
 
 - [ ] **Step 2: Typecheck and run the unit tests**
 
 Run: `npm run typecheck && npm test`
-Expected: typecheck prints nothing, and all 45 unit tests pass.
+Expected: typecheck prints nothing, and all 48 unit tests pass.
 
 - [ ] **Step 3: Run the no-flash tests**
 
@@ -1397,25 +1425,32 @@ test('Reveal shows comments, and Hide comments hides them again', async ({ page 
   await expect(modeOf(page)).toHaveAttribute('data-spoiler-shield', 'hidden');
   await expect(page.locator('ytd-comment-thread-renderer').first()).toBeHidden();
   await expect(placeholderOf(page)).toContainText('Comments hidden by Spoiler Shield');
+  await scrollThroughPage(page, 4);
+  await expect(modeOf(page)).toHaveAttribute('data-spoiler-shield', 'hidden');
 });
 
 test('a Reveal does not carry over to the next video, or come back on Back', async ({ page }) => {
   await openWatch(page);
   await reveal(page);
+  await scrollUntilCommentsShow(page);
   await page.evaluate(() => ((window as unknown as { __ssSamePage: boolean }).__ssSamePage = true));
 
-  const next = page.locator(`#secondary a[href*="/watch?v="]:not([href*="${VIDEO}"])`).first();
+  const next = page.locator(`#secondary a[href*="/watch?v="]:not([href*="${VIDEO}"])`).filter({ visible: true }).first();
   await next.click();
   await page.waitForURL((url) => !url.href.includes(VIDEO));
   // Same document: an in-page navigation, the same path autoplay takes.
   expect(await page.evaluate(() => (window as unknown as { __ssSamePage?: boolean }).__ssSamePage)).toBe(true);
   await expect(modeOf(page)).toHaveAttribute('data-spoiler-shield', 'hidden');
   await scrollThroughPage(page, 4);
+  await expect(modeOf(page)).toHaveAttribute('data-spoiler-shield', 'hidden');
+  await expect(placeholderOf(page).getByRole('button', { name: 'Show comments' })).toBeVisible();
 
   await page.goBack();
   await page.waitForURL(new RegExp(VIDEO));
   await expect(modeOf(page)).toHaveAttribute('data-spoiler-shield', 'hidden');
   await scrollThroughPage(page, 4);
+  await expect(modeOf(page)).toHaveAttribute('data-spoiler-shield', 'hidden');
+  await expect(placeholderOf(page).getByRole('button', { name: 'Show comments' })).toBeVisible();
 });
 
 test('a Reveal does not survive a refresh', async ({ page }) => {
@@ -1425,6 +1460,8 @@ test('a Reveal does not survive a refresh', async ({ page }) => {
   await page.locator('ytd-watch-flexy').waitFor();
   await expect(modeOf(page)).toHaveAttribute('data-spoiler-shield', 'hidden');
   await scrollThroughPage(page, 4);
+  await expect(modeOf(page)).toHaveAttribute('data-spoiler-shield', 'hidden');
+  await expect(placeholderOf(page).getByRole('button', { name: 'Show comments' })).toBeVisible();
 });
 
 test('the explainer shows until the first Reveal, then never again', async ({ page }) => {
@@ -1442,6 +1479,8 @@ test('the explainer shows until the first Reveal, then never again', async ({ pa
 test('comments stay hidden in a narrow window (comment teaser layout)', async ({ page }) => {
   await page.setViewportSize({ width: 600, height: 900 });
   await openWatch(page);
+  await expect(page.locator('#comment-teaser').first()).toBeAttached();
+  await expect(page.locator('#comment-teaser').first()).toBeHidden();
   await scrollThroughPage(page);
   // noLeaks catches any visible teaser or comment.
 });
