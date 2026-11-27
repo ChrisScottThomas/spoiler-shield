@@ -27,9 +27,9 @@ export function createRevealState(): RevealState {
       navigating = false;
     },
     reveal() {
-      if (current === null) return;
+      // Ignored mid-navigation: we don't yet know which video the Reveal would apply to (fail closed).
+      if (navigating || current === null) return;
       revealed = current;
-      navigating = false;
     },
     hide() {
       revealed = null;

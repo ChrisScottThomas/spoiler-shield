@@ -320,6 +320,29 @@ describe('createRevealState', () => {
     s.navigatedTo(A);
     expect(s.currentVideoId()).toBe(A);
   });
+
+  it('ignores a Reveal while a navigation is in progress', () => {
+    const s = createRevealState();
+    s.navigatedTo(A);
+    s.navigationStarted();
+    s.reveal();
+    expect(s.mode()).toBe('hidden');
+    s.navigatedTo(B);
+    expect(s.mode()).toBe('hidden');
+  });
+
+  it('keeps a Reveal across a same-video navigation that starts and finishes', () => {
+    const s = createRevealState();
+    s.navigatedTo(A);
+    s.reveal();
+    s.navigationStarted();
+    s.navigatedTo(A);
+    expect(s.mode()).toBe('revealed');
+  });
+
+  it('has no current video before any page is known', () => {
+    expect(createRevealState().currentVideoId()).toBeNull();
+  });
 });
 ```
 
@@ -360,9 +383,9 @@ export function createRevealState(): RevealState {
       navigating = false;
     },
     reveal() {
-      if (current === null) return;
+      // Ignored mid-navigation: we don't yet know which video the Reveal would apply to (fail closed).
+      if (navigating || current === null) return;
       revealed = current;
-      navigating = false;
     },
     hide() {
       revealed = null;
@@ -382,7 +405,7 @@ export function createRevealState(): RevealState {
 - [ ] **Step 4: Run the test and check it passes**
 
 Run: `npx vitest run src/core/state.test.ts`
-Expected: PASS, 12 tests.
+Expected: PASS, 15 tests.
 
 - [ ] **Step 5: Commit**
 
@@ -1084,7 +1107,7 @@ Expected: `built dist/`. `dist/` contains `content.js hide.css icons manifest.js
 - [ ] **Step 7: Typecheck and run the unit tests**
 
 Run: `npm run typecheck && npm test`
-Expected: typecheck prints nothing, and Vitest reports 7 files passed, 45 tests.
+Expected: typecheck prints nothing, and Vitest reports 7 files passed, 48 tests.
 
 - [ ] **Step 8: Commit**
 
@@ -1350,7 +1373,7 @@ void shouldShowExplainer(store).then((show) => {
 - [ ] **Step 2: Typecheck and run the unit tests**
 
 Run: `npm run typecheck && npm test`
-Expected: typecheck prints nothing, and all 45 unit tests pass.
+Expected: typecheck prints nothing, and all 48 unit tests pass.
 
 - [ ] **Step 3: Run the no-flash tests**
 

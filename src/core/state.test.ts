@@ -90,4 +90,27 @@ describe('createRevealState', () => {
     s.navigatedTo(A);
     expect(s.currentVideoId()).toBe(A);
   });
+
+  it('ignores a Reveal while a navigation is in progress', () => {
+    const s = createRevealState();
+    s.navigatedTo(A);
+    s.navigationStarted();
+    s.reveal();
+    expect(s.mode()).toBe('hidden');
+    s.navigatedTo(B);
+    expect(s.mode()).toBe('hidden');
+  });
+
+  it('keeps a Reveal across a same-video navigation that starts and finishes', () => {
+    const s = createRevealState();
+    s.navigatedTo(A);
+    s.reveal();
+    s.navigationStarted();
+    s.navigatedTo(A);
+    expect(s.mode()).toBe('revealed');
+  });
+
+  it('has no current video before any page is known', () => {
+    expect(createRevealState().currentVideoId()).toBeNull();
+  });
 });
