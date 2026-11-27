@@ -21,7 +21,7 @@ Run before every release, with `dist/` loaded unpacked in Chrome (`chrome://exte
 - [ ] `chrome://extensions` shows no errors for Spoiler Shield
 
 ## Store listing
-- [ ] Single purpose: "Hides YouTube comments by default so sports results aren't spoiled"
+- [ ] Single purpose: "Hides YouTube comments by default so sports replays and highlights aren't spoiled"
 - [ ] `storage` permission justification: "remembers that the one-time explanation was seen"
 - [ ] Host access justification: "runs only on www.youtube.com to hide comments"
 - [ ] Data usage certification: "collects no user data"

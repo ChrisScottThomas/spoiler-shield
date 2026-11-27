@@ -13,14 +13,29 @@ export interface Leak {
 // shows comment text while comments should be Hidden. It does not trust the
 // extension's own mode: 'revealed' is exempt only on the video the test revealed
 // (window.__ssRevealedFor, set by the test before clicking), and 'inactive' only
-// off the Watch Page. Leaving that video forgets it, so a Reveal that comes back
-// on Back is a leak too.
+// off the Watch Page. Like the extension, the monitor decides which video is
+// showing from location. The exemption ends when the video changes (even if
+// frames were paused in between, via __ssLastV), so a Reveal that comes back on
+// Back is a leak, and when the monitor sees 'hidden' after the exempt Reveal, so
+// a Hide ends it too. 'hidden' before the Reveal lands doesn't end it: the test
+// sets __ssRevealedFor while the page is still Hidden.
 const LEAK_MONITOR = `(() => {
   const reported = new WeakSet();
   const exempt = (mode) => {
     const video = new URLSearchParams(location.search).get('v');
-    if (window.__ssRevealedFor && video !== window.__ssRevealedFor) window.__ssRevealedFor = null;
-    if (mode === 'revealed') return video !== null && video === window.__ssRevealedFor;
+    if (video !== window.__ssLastV) {
+      window.__ssRevealedFor = null;
+      window.__ssRevealSeen = false;
+      window.__ssLastV = video;
+    }
+    if (mode === 'hidden' && window.__ssRevealSeen) {
+      window.__ssRevealedFor = null;
+      window.__ssRevealSeen = false;
+    }
+    if (mode === 'revealed' && video !== null && video === window.__ssRevealedFor) {
+      window.__ssRevealSeen = true;
+      return true;
+    }
     if (mode === 'inactive') return location.pathname !== '/watch';
     return false;
   };

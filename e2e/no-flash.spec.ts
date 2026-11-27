@@ -1,4 +1,5 @@
 import { TEXT } from '../src/content/placeholder';
+import { ATTR, PLACEHOLDER_ID } from '../src/core/constants';
 import { expect, test } from './fixtures';
 import { openWatch, scrollThroughPage } from './youtube';
 
@@ -11,11 +12,11 @@ test.describe('Hidden by default', () => {
 
   test('the Placeholder stands in for the comments', async ({ page }) => {
     await openWatch(page);
-    const placeholder = page.locator('#spoiler-shield-placeholder');
+    const placeholder = page.locator(`#${PLACEHOLDER_ID}`);
     await placeholder.scrollIntoViewIfNeeded();
     await expect(placeholder).toBeVisible();
     await expect(placeholder).toContainText(TEXT.hidden);
     await expect(placeholder.getByRole('button', { name: TEXT.show })).toBeVisible();
-    await expect(page.locator('html')).toHaveAttribute('data-spoiler-shield', 'hidden');
+    await expect(page.locator('html')).toHaveAttribute(ATTR, 'hidden');
   });
 });

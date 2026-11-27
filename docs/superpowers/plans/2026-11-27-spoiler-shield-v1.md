@@ -1426,6 +1426,7 @@ test('Reveal shows comments, and Hide comments hides them again', async ({ page 
   await expect(page.locator('ytd-comment-thread-renderer').first()).toBeHidden();
   await expect(placeholderOf(page)).toContainText('Comments hidden by Spoiler Shield');
   await scrollThroughPage(page, 4);
+  await expect(modeOf(page)).toHaveAttribute('data-spoiler-shield', 'hidden');
 });
 
 test('a Reveal does not carry over to the next video, or come back on Back', async ({ page }) => {
